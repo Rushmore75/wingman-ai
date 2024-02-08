@@ -376,7 +376,7 @@ class Wingman(FileCreator):
         return self._select_command_response(command) or "Ok"
 
     def execute_action(self, command: dict):
-        """Executes the keypresses defined in the command in order.
+        """Executes the actions defined in order.
 
         pydirectinput uses SIGEVENTS to send keypresses to the OS. This lib seems to be the only way to send keypresses to games reliably.
 
