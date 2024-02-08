@@ -57,8 +57,6 @@ class Wingman(FileCreator):
     """Token for delay between actions with multiple keypresses"""
     action_hold = "hold"
     """Token for duration to hold key down"""
-    action_endpoint = "endpoint"
-    """Token for url endpoint"""
 
     def __init__(
         self,
@@ -405,13 +403,6 @@ class Wingman(FileCreator):
             # Modifier Up
             if entry.get(self.action_key_modifier):
                 key_module.keyUp(entry[self.action_key_modifier])
-
-            # <==========> Make http requests <==========>
-            # Call endpoint
-            if entry.get(self.action_endpoint):
-                requests.get(entry[self.action_endpoint], timeout=10.0)
-
-            # <==========> Your Additions <==========>
 
             # Delay before next action
             if entry.get(self.action_wait):

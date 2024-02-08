@@ -445,10 +445,6 @@ wingmen:
         keys:
           - key: n
             modifier: alt
-      # ───────────────────────────────────────────
-      - name: SendHeartbeatHome
-        keys:
-          - endpoint: "https://example.com/"
  
       # ───────────────────────── HOW TO INSERT NEW COMMANDS: ───────────────────────────
       #   - Please make sure the indentation aligns with the commands above perfectly.
