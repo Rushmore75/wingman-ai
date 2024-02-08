@@ -38,7 +38,7 @@ class Wingman(FileCreator):
     """Token for instant activation of an action"""
     _action_responses_token = "responses"
     """Token for prepared responses for a givin action"""
-    _actions_category_token = "keys"
+    _actions_keys_token = "keys"
     """Top level token for defining actions"""
     _action_key_token = "key"
     """Token for executing a keypress"""
@@ -353,7 +353,7 @@ class Wingman(FileCreator):
                 "Skipping actual keypress execution in debug_mode...", tags="warn"
             )
 
-        if len(command.get(self._actions_category_token, [])) > 0 and not self.debug:
+        if len(command.get(self._actions_keys_token, [])) > 0 and not self.debug:
             self.execute_action(command)
         # TODO: we could do mouse_events here, too...
 
@@ -378,7 +378,7 @@ class Wingman(FileCreator):
             command (dict): The command object from the config to execute
         """
 
-        for entry in command.get(self._actions_category_token, []):
+        for entry in command.get(self._actions_keys_token, []):
 
             # <==========> KEY BINDS <==========>
             # Modifier Down
