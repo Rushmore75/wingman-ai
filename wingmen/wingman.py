@@ -27,6 +27,36 @@ class Wingman(FileCreator):
     Instead, you'll create a custom wingman that inherits from this (or a another subclass of it) and override its methods if needed.
     """
 
+    # Define magic values so reconciling a refactoring of the config is easier.
+    # Not all of the keys/tokens are here, mostly just the ones pertaining to
+    # performing an action.
+    #
+    # If you want to add more sub-catagories to the actions, go to the
+    # execute_action function (at bottom of file) and add the logic there.
+    #
+    # I don't see why you would change these first few,
+    # but most of the other (yaml) keys (called tokens here, as to not confuse
+    # them with keyboard keys) were becoming variables.
+    action_name = "name"
+    """Token for name of the action."""
+    action_instant_activation = "instant_activation"
+    """Token for instant activation of an action"""
+    action_responses = "responses"
+    """Token for prepared responses for a givin action"""
+    actions_header = "commands"
+    """Top-level token for defining commands / actions"""
+    # These ones actually make sense
+    actions_category = "keys"
+    """Top level token for defining actions"""
+    action_key = "key"
+    """Token for executing a keypress"""
+    action_key_modifier = "modifier"
+    """Token for secondary key to press while executing previous key"""
+    action_wait = "wait"
+    """Token for delay between actions with multiple keypresses"""
+    action_hold = "hold"
+    """Token for duration to hold key down"""
+
     def __init__(
         self,
         name: str,
@@ -57,7 +87,7 @@ class Wingman(FileCreator):
         """A service that allows you to play audio files and add sound effects to them."""
 
         self.execution_start: None | float = None
-        """Used for benchmarking executon times. The timer is (re-)started whenever the process function starts."""
+        """Used for benchmarking execution times. The timer is (re-)started whenever the process function starts."""
 
         self.debug: bool = self.config["features"].get("debug_mode", False)
         """If enabled, the Wingman will skip executing any keypresses. It will also print more debug messages and benchmark results."""
@@ -253,8 +283,8 @@ class Wingman(FileCreator):
         command = next(
             (
                 item
-                for item in self.config.get("commands", [])
-                if item["name"] == command_name
+                for item in self.config.get(self.actions_header, [])
+                if item[self.action_name] == command_name
             ),
             None,
         )
@@ -269,7 +299,7 @@ class Wingman(FileCreator):
         Returns:
             str: A random response from the command's responses list in the config.
         """
-        command_responses = command.get("responses", None)
+        command_responses = command.get(self.action_responses, None)
         if (command_responses is None) or (len(command_responses) == 0):
             return None
 
@@ -287,13 +317,13 @@ class Wingman(FileCreator):
 
         instant_activation_commands = [
             command
-            for command in self.config.get("commands", [])
-            if command.get("instant_activation")
+            for command in self.config.get(self.actions_header, [])
+            if command.get(self.action_instant_activation)
         ]
 
         # check if transcript matches any instant activation command. Each command has a list of possible phrases
         for command in instant_activation_commands:
-            for phrase in command.get("instant_activation"):
+            for phrase in command.get(self.action_instant_activation):
                 ratio = SequenceMatcher(
                     None,
                     transcript.lower(),
@@ -304,7 +334,7 @@ class Wingman(FileCreator):
                 ):  # if the ratio is higher than 0.8, we assume that the command was spoken
                     self._execute_command(command)
 
-                    if command.get("responses"):
+                    if command.get(self.action_responses):
                         return command
                     return None
         return None
@@ -322,19 +352,21 @@ class Wingman(FileCreator):
         if not command:
             return "Command not found"
 
-        printr.print(f"❖ Executing command: {command.get('name')}", tags="info")
+        printr.print(
+            f"❖ Executing command: {command.get(self.action_name)}", tags="info"
+        )
 
         if self.debug:
             printr.print(
                 "Skipping actual keypress execution in debug_mode...", tags="warn"
             )
 
-        if len(command.get("keys", [])) > 0 and not self.debug:
-            self.execute_keypress(command)
+        if len(command.get(self.actions_category, [])) > 0 and not self.debug:
+            self.execute_action(command)
         # TODO: we could do mouse_events here, too...
 
         # handle the global special commands:
-        if command.get("name", None) == "ResetConversationHistory":
+        if command.get(self.action_name, None) == "ResetConversationHistory":
             self.reset_conversation_history()
 
         if not self.debug:
@@ -343,7 +375,7 @@ class Wingman(FileCreator):
 
         return self._select_command_response(command) or "Ok"
 
-    def execute_keypress(self, command: dict):
+    def execute_action(self, command: dict):
         """Executes the keypresses defined in the command in order.
 
         pydirectinput uses SIGEVENTS to send keypresses to the OS. This lib seems to be the only way to send keypresses to games reliably.
@@ -354,19 +386,25 @@ class Wingman(FileCreator):
             command (dict): The command object from the config to execute
         """
 
-        for entry in command.get("keys", []):
-            if entry.get("modifier"):
-                key_module.keyDown(entry["modifier"])
+        for entry in command.get(self.actions_category, []):
 
-            if entry.get("hold"):
-                key_module.keyDown(entry["key"])
-                time.sleep(entry["hold"])
-                key_module.keyUp(entry["key"])
+            # <==========> KEY BINDS <==========>
+            # Modifier Down
+            if entry.get(self.action_key_modifier):
+                key_module.keyDown(entry[self.action_key_modifier])
+            # Key Down/Up
+            if entry.get(self.action_hold):
+                key_module.keyDown(entry[self.action_key])
+                time.sleep(entry[self.action_hold])
+                key_module.keyUp(entry[self.action_key])
             else:
-                key_module.press(entry["key"])
+                key_module.press(entry[self.action_key])
+            # Modifier Up
+            if entry.get(self.action_key_modifier):
+                key_module.keyUp(entry[self.action_key_modifier])
 
-            if entry.get("modifier"):
-                key_module.keyUp(entry["modifier"])
+            # <==========> Your Additions <==========>
 
-            if entry.get("wait"):
-                time.sleep(entry["wait"])
+            # Delay before next action
+            if entry.get(self.action_wait):
+                time.sleep(entry[self.action_wait])
