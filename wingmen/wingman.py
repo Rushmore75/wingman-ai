@@ -31,31 +31,23 @@ class Wingman(FileCreator):
     # Define magic values so reconciling a refactoring of the config is easier.
     # Not all of the keys/tokens are here, mostly just the ones pertaining to
     # performing an action.
-    #
-    # If you want to add more sub-catagories to the actions, go to the
-    # execute_action function (at bottom of file) and add the logic there.
-    #
-    # I don't see why you would change these first few,
-    # but most of the other (yaml) keys (called tokens here, as to not confuse
-    # them with keyboard keys) were becoming variables.
-    action_name = "name"
-    """Token for name of the action."""
-    action_instant_activation = "instant_activation"
-    """Token for instant activation of an action"""
-    action_responses = "responses"
-    """Token for prepared responses for a givin action"""
-    actions_header = "commands"
+    _actions_header_token = "commands"
     """Top-level token for defining commands / actions"""
-    # These ones actually make sense
-    actions_category = "keys"
+    _action_name_token = "name"
+    """Token for name of the action."""
+    _action_instant_activation_token = "instant_activation"
+    """Token for instant activation of an action"""
+    _action_responses_token = "responses"
+    """Token for prepared responses for a givin action"""
+    _actions_category_token = "keys"
     """Top level token for defining actions"""
-    action_key = "key"
+    _action_key_token = "key"
     """Token for executing a keypress"""
-    action_key_modifier = "modifier"
+    _action_key_modifier_token = "modifier"
     """Token for secondary key to press while executing previous key"""
-    action_wait = "wait"
+    _action_wait_token = "wait"
     """Token for delay between actions with multiple keypresses"""
-    action_hold = "hold"
+    _action_hold_token = "hold"
     """Token for duration to hold key down"""
 
     def __init__(
@@ -284,8 +276,8 @@ class Wingman(FileCreator):
         command = next(
             (
                 item
-                for item in self.config.get(self.actions_header, [])
-                if item[self.action_name] == command_name
+                for item in self.config.get(self._actions_header_token, [])
+                if item[self._action_name_token] == command_name
             ),
             None,
         )
@@ -300,7 +292,7 @@ class Wingman(FileCreator):
         Returns:
             str: A random response from the command's responses list in the config.
         """
-        command_responses = command.get(self.action_responses, None)
+        command_responses = command.get(self._action_responses_token, None)
         if (command_responses is None) or (len(command_responses) == 0):
             return None
 
@@ -318,13 +310,13 @@ class Wingman(FileCreator):
 
         instant_activation_commands = [
             command
-            for command in self.config.get(self.actions_header, [])
-            if command.get(self.action_instant_activation)
+            for command in self.config.get(self._actions_header_token, [])
+            if command.get(self._action_instant_activation_token)
         ]
 
         # check if transcript matches any instant activation command. Each command has a list of possible phrases
         for command in instant_activation_commands:
-            for phrase in command.get(self.action_instant_activation):
+            for phrase in command.get(self._action_instant_activation_token):
                 ratio = SequenceMatcher(
                     None,
                     transcript.lower(),
@@ -335,7 +327,7 @@ class Wingman(FileCreator):
                 ):  # if the ratio is higher than 0.8, we assume that the command was spoken
                     self._execute_command(command)
 
-                    if command.get(self.action_responses):
+                    if command.get(self._action_responses_token):
                         return command
                     return None
         return None
@@ -354,7 +346,7 @@ class Wingman(FileCreator):
             return "Command not found"
 
         printr.print(
-            f"❖ Executing command: {command.get(self.action_name)}", tags="info"
+            f"❖ Executing command: {command.get(self._action_name_token)}", tags="info"
         )
 
         if self.debug:
@@ -362,12 +354,12 @@ class Wingman(FileCreator):
                 "Skipping actual keypress execution in debug_mode...", tags="warn"
             )
 
-        if len(command.get(self.actions_category, [])) > 0 and not self.debug:
+        if len(command.get(self._actions_category_token, [])) > 0 and not self.debug:
             self.execute_action(command)
         # TODO: we could do mouse_events here, too...
 
         # handle the global special commands:
-        if command.get(self.action_name, None) == "ResetConversationHistory":
+        if command.get(self._action_name_token, None) == "ResetConversationHistory":
             self.reset_conversation_history()
 
         if not self.debug:
@@ -387,23 +379,23 @@ class Wingman(FileCreator):
             command (dict): The command object from the config to execute
         """
 
-        for entry in command.get(self.actions_category, []):
+        for entry in command.get(self._actions_category_token, []):
 
             # <==========> KEY BINDS <==========>
             # Modifier Down
-            if entry.get(self.action_key_modifier):
-                key_module.keyDown(entry[self.action_key_modifier])
+            if entry.get(self._action_key_modifier_token):
+                key_module.keyDown(entry[self._action_key_modifier_token])
             # Key Down/Up
-            if entry.get(self.action_hold):
-                key_module.keyDown(entry[self.action_key])
-                time.sleep(entry[self.action_hold])
-                key_module.keyUp(entry[self.action_key])
+            if entry.get(self._action_hold_token):
+                key_module.keyDown(entry[self._action_key_token])
+                time.sleep(entry[self._action_hold_token])
+                key_module.keyUp(entry[self._action_key_token])
             else:
-                key_module.press(entry[self.action_key])
+                key_module.press(entry[self._action_key_token])
             # Modifier Up
-            if entry.get(self.action_key_modifier):
-                key_module.keyUp(entry[self.action_key_modifier])
+            if entry.get(self._action_key_modifier_token):
+                key_module.keyUp(entry[self._action_key_modifier_token])
 
             # Delay before next action
-            if entry.get(self.action_wait):
-                time.sleep(entry[self.action_wait])
+            if entry.get(self._action_wait_token):
+                time.sleep(entry[self._action_wait_token])
