@@ -3,7 +3,6 @@ import time
 from difflib import SequenceMatcher
 from importlib import import_module
 from typing import Any
-import requests
 from services.audio_player import AudioPlayer
 from services.file_creator import FileCreator
 from services.printr import Printr
